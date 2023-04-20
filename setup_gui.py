@@ -61,11 +61,11 @@ class SetupWorker(QRunnable):
             
             else:
                 self.signals.status.emit(f"Resetting and turning on {self.cavity} SSA if not on already")
-                asyncio.run(self.cavity.ssa.reset())
+                self.cavity.ssa.reset()
                 self.cavity.ssa.turnOn()
                 
                 self.signals.status.emit(f"Resetting {self.cavity} interlocks")
-                asyncio.run(self.cavity.reset_interlocks())
+                self.cavity.reset_interlocks()
                 
                 if self.ssa_cal:
                     self.signals.status.emit(f"Running {self.cavity} SSA Calibration")
@@ -84,7 +84,7 @@ class SetupWorker(QRunnable):
                 
                 if self.cav_char:
                     self.signals.status.emit(f"Running {self.cavity} Cavity Characterization")
-                    asyncio.run(self.cavity.characterize())
+                    self.cavity.characterize()
                     self.cavity.calc_probe_q_pv.put(1)
                     self.signals.finished.emit(f"{self.cavity} Characterized")
                 
@@ -104,11 +104,11 @@ class SetupWorker(QRunnable):
                     self.cavity.check_abort()
                     
                     if self.desAmp <= 10:
-                        asyncio.run(self.cavity.walk_amp(self.desAmp, 0.5))
+                        self.cavity.walk_amp(self.desAmp, 0.5)
                     
                     else:
-                        asyncio.run(self.cavity.walk_amp(10, 0.5))
-                        asyncio.run(self.cavity.walk_amp(self.desAmp, 0.1))
+                        self.cavity.walk_amp(10, 0.5)
+                        self.cavity.walk_amp(self.desAmp, 0.1)
                     
                     caput(self.cavity.rfModeCtrlPV.pvname, RF_MODE_SELAP, wait=True)
                     
@@ -373,11 +373,11 @@ class SetupGUI(Display):
         self.checkThreadTimer.timeout.connect(self.update_gui)
         self.checkThreadTimer.start()
         
-        self.checkThreadTimer = QTimer(self)
+        #self.checkThreadTimer = QTimer(self)
         # I think this is 1 second?
-        self.checkThreadTimer.setInterval(1000)
-        self.checkThreadTimer.timeout.connect(self.update_threadcount)
-        self.checkThreadTimer.start()
+        #self.checkThreadTimer.setInterval(1000)
+        #self.checkThreadTimer.timeout.connect(self.update_threadcount)
+        #self.checkThreadTimer.start()
         
         self.settings = Settings(ssa_cal_checkbox=self.ui.ssa_cal_checkbox,
                                  auto_tune_checkbox=self.ui.autotune_checkbox,
