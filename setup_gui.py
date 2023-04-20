@@ -1,8 +1,10 @@
 import dataclasses
+import asyncio
 from time import sleep
 from typing import Dict, List
 
 from PyQt5.QtCore import QRunnable, QThreadPool, QTimer, Qt
+
 from PyQt5.QtWidgets import (QCheckBox, QGridLayout, QGroupBox,
                              QHBoxLayout, QLabel, QMessageBox, QPushButton,
                              QTabWidget, QVBoxLayout, QWidget)
@@ -59,11 +61,11 @@ class SetupWorker(QRunnable):
             
             else:
                 self.signals.status.emit(f"Resetting and turning on {self.cavity} SSA if not on already")
-                self.cavity.ssa.reset()
+                asyncio.run(self.cavity.ssa.reset())
                 self.cavity.ssa.turnOn()
                 
                 self.signals.status.emit(f"Resetting {self.cavity} interlocks")
-                self.cavity.reset_interlocks()
+                asyncio.run(self.cavity.reset_interlocks())
                 
                 if self.ssa_cal:
                     self.signals.status.emit(f"Running {self.cavity} SSA Calibration")
@@ -82,7 +84,7 @@ class SetupWorker(QRunnable):
                 
                 if self.cav_char:
                     self.signals.status.emit(f"Running {self.cavity} Cavity Characterization")
-                    self.cavity.characterize()
+                    asyncio.run(self.cavity.characterize())
                     self.cavity.calc_probe_q_pv.put(1)
                     self.signals.finished.emit(f"{self.cavity} Characterized")
                 
@@ -102,11 +104,11 @@ class SetupWorker(QRunnable):
                     self.cavity.check_abort()
                     
                     if self.desAmp <= 10:
-                        self.cavity.walk_amp(self.desAmp, 0.5)
+                        asyncio.run(self.cavity.walk_amp(self.desAmp, 0.5))
                     
                     else:
-                        self.cavity.walk_amp(10, 0.5)
-                        self.cavity.walk_amp(self.desAmp, 0.1)
+                        asyncio.run(self.cavity.walk_amp(10, 0.5))
+                        asyncio.run(self.cavity.walk_amp(self.desAmp, 0.1))
                     
                     caput(self.cavity.rfModeCtrlPV.pvname, RF_MODE_SELAP, wait=True)
                     
@@ -366,6 +368,10 @@ class SetupGUI(Display):
         super(SetupGUI, self).__init__(parent=parent, args=args)
         self.threadpool = QThreadPool()
         print(f"Max thread count: {self.threadpool.maxThreadCount()}")
+        self.checkThreadTimer = QTimer(self)
+        self.checkThreadTimer.setInterval(100)
+        self.checkThreadTimer.timeout.connect(self.update_gui)
+        self.checkThreadTimer.start()
         
         self.checkThreadTimer = QTimer(self)
         # I think this is 1 second?
@@ -415,6 +421,8 @@ class SetupGUI(Display):
             aact_pv = f"ACCL:L{linac_idx}B:1:AACTMEANSUM"
             readback += caget(aact_pv)
         self.ui.machine_readback_label.setText(f"{readback:.2f} MV")
-    
-    def update_threadcount(self):
-        self.ui.threadcount_label.setText(f"{self.threadpool.activeThreadCount()}")
+
+
+    def update_gui(self):
+        pass
+
